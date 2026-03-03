@@ -1,63 +1,74 @@
 import { useState } from "react";
 
+const API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
+
 const PERSONAS_BASE = {
   eloigne: {
-    name: "Yannick",
-    age: "48 ans — Cannes",
+    name: "Yannick", age: "48 ans — Cannes",
     job: "Opticien · BTS · CSP moyenne · Séparé, 1 enfant",
-    emoji: "🎧",
-    type: "eloigne",
-    typeLabel: "Les Éloignés",
-    color: "#e8401c",
-    medias: ["Facebook", "Skyrock", "Nova", "Le Mouv'", "TRACE Urban", "Youtube", "Netflix", "MyCanal"],
-    interests: ["Culture hip-hop (rap, danse, streetwear)", "BD", "Collection CD & sneakers"],
-    frustrations: ["N'apprécie plus tous les artistes TRACE Urban", "Se sent vieux malgré ses efforts", "Déteste l'autotune, regrette l'engagement"],
+    emoji: "🎧", type: "eloigne", typeLabel: "Les Éloignés", color: "#e8401c",
+    medias: ["Facebook", "Skyrock", "Nova", "Le Mouv'", "TRACE Urban", "Youtube", "Netflix"],
+    interests: ["Culture hip-hop", "BD", "Collection CD & sneakers"],
+    frustrations: ["N'apprécie plus tous les artistes TRACE Urban", "Se sent vieux malgré ses efforts", "Déteste l'autotune"],
     hooks: ["Nostalgie (goldies)", "Grandes figures du rap", "Playlist Rewind"],
     triggers: ["Documentaire grandes figures", "Légendes", "Playlist Rewind", "TRACE+"],
-    bio: "Yannick a grandi avec le hip-hop. Il regardait TRACE TV sur Canalsat tous les jours il y a 20 ans. Il continue à regarder TRACE Urban occasionnellement, mais commence à se détacher des artistes les plus jeunes. Il déteste l'autotune, regrette l'engagement des années 90-2000.",
-    lastUpdate: null,
-    signals: []
+    bio: "Yannick a grandi avec le hip-hop. Il regardait TRACE TV tous les jours il y a 20 ans. Il continue occasionnellement mais se détache des jeunes artistes. Il déteste l'autotune et regrette l'engagement des années 90-2000.",
+    lastUpdate: null, signals: []
   },
   curieux: {
-    name: "Théo",
-    age: "19 ans — Dijon",
+    name: "Théo", age: "19 ans — Dijon",
     job: "Étudiant · 1ère année école d'ingé · CSP moyenne",
-    emoji: "🎮",
-    type: "curieux",
-    typeLabel: "Les Curieux",
-    color: "#c9a84c",
+    emoji: "🎮", type: "curieux", typeLabel: "Les Curieux", color: "#c9a84c",
     medias: ["TikTok", "Instagram", "Twitch", "Spotify", "Youtube"],
     interests: ["Jeux vidéos", "Mangas & Animés", "Formule 1", "NBA"],
-    frustrations: ["Monde incertain (écologie, économie)", "Événements hip-hop inaccessibles en province", "TV linéaire dépassée"],
-    hooks: ["Réseaux sociaux (Insta, TikTok, Twitch)", "Contenu exclusif", "Interactivité"],
+    frustrations: ["Monde incertain", "Événements hip-hop inaccessibles en province", "TV linéaire dépassée"],
+    hooks: ["Réseaux sociaux", "Contenu exclusif", "Interactivité"],
     triggers: ["Playlist Spotify", "Événement en province", "Jeu-concours voyage Paris"],
-    bio: "Théo a découvert TRACE dans un kebab. Ses parents écoutent les variétés françaises, mais c'est le hip-hop que lui et ses amis écoutent. Il ne pense pas à regarder TRACE Urban à la télé. Il veut devenir développeur et développer sa chaîne Twitch.",
-    lastUpdate: null,
-    signals: []
+    bio: "Théo a découvert TRACE dans un kebab. C'est le hip-hop que lui et ses amis écoutent. Il ne pense pas à regarder TRACE Urban à la télé. Il veut devenir développeur.",
+    lastUpdate: null, signals: []
   },
   fidele: {
-    name: "Djibril",
-    age: "28 ans — Montfermeil",
+    name: "Djibril", age: "28 ans — Montfermeil",
     job: "Manutentionnaire · Chauffeur Uber · CSP- · Origine algérienne",
-    emoji: "🏋️",
-    type: "fidele",
-    typeLabel: "Les Fidèles",
-    color: "#1a6b3a",
+    emoji: "🏋️", type: "fidele", typeLabel: "Les Fidèles", color: "#1a6b3a",
     medias: ["Instagram", "Skyrock", "TRACE Urban", "TPMP", "Spotify", "Youtube"],
-    interests: ["MMA & football (paris sportifs)", "Crypto-monnaies", "Hip-hop & artistes algériens", "Voyager (Algérie, Malaisie, Dubaï)"],
-    frustrations: ["TRACE diffuse du mainstream ou de l'Afrobeat", "Les pubs impossibles à skipper", "Image 'ringard' car il regarde la TV linéaire"],
+    interests: ["MMA & football", "Crypto-monnaies", "Hip-hop & artistes algériens", "Voyager"],
+    frustrations: ["TRACE diffuse du mainstream ou de l'Afrobeat", "Les pubs impossibles à skipper", "Image ringard"],
     hooks: ["Salle de sport", "Football", "Communauté"],
     triggers: ["Playlist workout Spotify", "DJ set Basic Fit", "Trace party Arabia", "Soirée Ramadan TRACE Urban"],
-    bio: "TRACE Urban c'est SA chaîne de référence — la seule qui diffuse autant de hip-hop. Il aime la regarder avec ses potes. Levé à 6h, déjeune avec Instagram, travaille 7h30-15h30, puis salle de sport. Le soir : TPMP avec Twitter, chicha ou dépannage Uber, boîte le samedi.",
-    lastUpdate: null,
-    signals: []
+    bio: "TRACE Urban c'est SA chaîne de référence. Il aime la regarder avec ses potes. Levé à 6h, travaille 7h30-15h30, salle de sport. Le soir TPMP, chicha ou Uber.",
+    lastUpdate: null, signals: []
   }
 };
 
 const EXAMPLES = {
-  doc: `"LÉGENDES" — Documentaire série, 6x52 min\n\nChaque épisode retrace le parcours d'un pionnier du rap français des années 90. Interviews inédites, archives rares, témoignages de proches.\n\nDiffusion : TRACE Urban & TRACE+\nPublic cible : 35-55 ans, fans de la première heure`,
-  podcast: `"INFO DIRECTE" — Podcast quotidien\n\nChaque matin, 15 minutes pour comprendre l'essentiel de l'actualité. Un journaliste, trois sujets, zéro jargon. Dès 6h30 sur toutes les plateformes.`,
-  serie: `"NEW WAVE" — Série documentaire, 8x26 min\n\nNEW WAVE donne la parole à la nouvelle génération du rap français : artistes 18-25 ans, créateurs de contenu, beatmakers. Comment font-ils carrière à l'ère du streaming ?\n\nDiffusion : Youtube & TRACE Urban`
+  doc: `"LÉGENDES" — Documentaire série, 6x52 min\nChaque épisode retrace le parcours d'un pionnier du rap français des années 90. Interviews inédites, archives rares.\nDiffusion : TRACE Urban & TRACE+`,
+  podcast: `"INFO DIRECTE" — Podcast quotidien\nChaque matin, 15 minutes pour comprendre l'actualité. Un journaliste, trois sujets, zéro jargon.`,
+  serie: `"NEW WAVE" — Série documentaire, 8x26 min\nNEW WAVE donne la parole à la nouvelle génération du rap français : artistes 18-25 ans, beatmakers.\nDiffusion : Youtube & TRACE Urban`
+};
+
+const callClaude = async (system, userMessage, maxTokens = 1000) => {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": API_KEY,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: maxTokens,
+      ...(system ? { system } : {}),
+      messages: [{ role: "user", content: userMessage }]
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error?.message || `Erreur API: ${res.status}`);
+  }
+  const data = await res.json();
+  return data.content.map(i => i.text || "").join("");
 };
 
 const ScoreCircle = ({ score, color }) => {
@@ -96,134 +107,57 @@ export default function PersonaLab() {
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [result, setResult] = useState(null);
-  const [updatePanel, setUpdatePanel] = useState(null); // proposed changes
-  const [showSignals, setShowSignals] = useState(false);
+  const [updatePanel, setUpdatePanel] = useState(null);
+  const [error, setError] = useState(null);
 
   const p = personas[current];
   const scoreColor = result ? (result.score >= 70 ? "#1a6b3a" : result.score >= 40 ? "#c9a84c" : "#e8401c") : "#333";
+  const dotColor = { eloigne: "#e8401c", curieux: "#c9a84c", fidele: "#1a6b3a" };
 
-  const selectPersona = (key) => { setCurrent(key); setResult(null); setUpdatePanel(null); setShowSignals(false); };
+  const selectPersona = (key) => { setCurrent(key); setResult(null); setUpdatePanel(null); setError(null); };
 
-  // ── ANALYSE CONTENU ──
   const analyze = async () => {
     if (!content.trim()) return;
-    setLoading(true); setResult(null);
-    const sys = `Tu es ${p.name}, ${p.age}, ${p.job}. Tu fais partie des "${p.typeLabel}".
-Biographie : ${p.bio}
-Médias : ${p.medias.join(", ")}. Intérêts : ${p.interests.join(", ")}.
-Accroche : ${p.hooks.join(", ")}. Frustrations : ${p.frustrations.join(", ")}.
-Déclencheurs : ${p.triggers.join(", ")}.
-Réponds UNIQUEMENT en JSON valide sans backticks :
+    setLoading(true); setResult(null); setError(null);
+    const sys = `Tu es ${p.name}, ${p.age}. Tu fais partie des "${p.typeLabel}".
+Bio: ${p.bio}
+Médias: ${p.medias.join(", ")}. Intérêts: ${p.interests.join(", ")}.
+Accroches: ${p.hooks.join(", ")}. Frustrations: ${p.frustrations.join(", ")}.
+Réponds UNIQUEMENT en JSON valide sans backticks ni markdown:
 {"score":<0-100>,"verdict":"<max 8 mots>","reaction":"<1ère personne 2-3 phrases>","dimensions":{"pertinence":<0-100>,"format":<0-100>,"ton":<0-100>,"engagement":<0-100>},"recommandations":["<1>","<2>","<3>"]}`;
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST", headers: { "Content-Type": "application/json", "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-        body: JSON.stringify({ model: "claude-sonnet-4-5", max_tokens: 1000, system: sys, messages: [{ role: "user", content: `Analyse :\n\n${content}` }] })
-      });
-      const data = await res.json();
-      const text = data.content.map(i => i.text || "").join("");
+      const text = await callClaude(sys, `Analyse ce contenu:\n\n${content}`);
       setResult(JSON.parse(text.replace(/```json|```/g, "").trim()));
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+    } catch (e) {
+      setError("Erreur analyse: " + e.message);
+    } finally { setLoading(false); }
   };
 
-  // ── MISE À JOUR AUTOMATIQUE ──
   const autoUpdate = async () => {
-    setUpdating(true); setUpdatePanel(null); setShowSignals(false);
+    setUpdating(true); setUpdatePanel(null); setError(null);
+    const prompt = `Tu es expert en études d'audience média en France 2025-2026.
+Génère une mise à jour réaliste pour ce persona:
+${p.name}, ${p.age}, ${p.typeLabel}
+Médias actuels: ${p.medias.join(", ")}
+Intérêts: ${p.interests.join(", ")}
+Frustrations: ${p.frustrations.join(", ")}
 
-    const searchPrompt = `Tu es un expert en études d'audience et culture média. 
-En te basant sur tes connaissances actuelles (tendances culturelles, réseaux sociaux, musique, médias), génère une mise à jour réaliste pour ce persona :
-
-Persona : ${p.name}, ${p.age}, ${p.job}
-Type : ${p.typeLabel}
-Profil actuel :
-- Médias : ${p.medias.join(", ")}
-- Intérêts : ${p.interests.join(", ")}
-- Frustrations : ${p.frustrations.join(", ")}
-- Déclencheurs : ${p.triggers.join(", ")}
-- Bio : ${p.bio}
-
-Génère des évolutions plausibles basées sur les tendances actuelles de la culture hip-hop, des médias numériques et des comportements d'audience en France en 2025-2026.
-
-Réponds UNIQUEMENT en JSON valide sans backticks :
-{
-  "signals": [
-    {"emoji":"<emoji>","title":"<signal court>","detail":"<1 phrase explication>","source":"<plateforme ou contexte>"}
-  ],
-  "proposed": {
-    "medias": ["<liste mise à jour>"],
-    "interests": ["<liste mise à jour>"],
-    "frustrations": ["<liste mise à jour>"],
-    "triggers": ["<liste mise à jour>"],
-    "bio": "<bio mise à jour 2-3 phrases>",
-    "changes": ["<changement 1 expliqué>","<changement 2 expliqué>","<changement 3 expliqué>"]
-  }
-}
-Inclus exactement 4 signaux et 3 changements. Les signaux doivent être concrets et actuels.`;
-
+Réponds UNIQUEMENT en JSON valide sans backticks ni markdown:
+{"signals":[{"emoji":"<e>","title":"<titre court>","detail":"<1 phrase>","source":"<contexte>"}],"proposed":{"medias":["<liste>"],"interests":["<liste>"],"frustrations":["<liste>"],"triggers":["<liste>"],"bio":"<2-3 phrases>","changes":["<changement 1>","<changement 2>","<changement 3>"]}}
+Inclus exactement 4 signaux et 3 changements.`;
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST", headers: { "Content-Type": "application/json", "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-        body: JSON.stringify({ model: "claude-sonnet-4-5", max_tokens: 1500, messages: [{ role: "user", content: searchPrompt }] })
-      });
-      const data = await res.json();
-      const text = data.content.map(i => i.text || "").join("");
+      const text = await callClaude(null, prompt, 1500);
       const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
       setUpdatePanel(parsed);
-      setShowSignals(true);
-    } catch (e) { console.error(e); }
-    finally { setUpdating(false); }
+    } catch (e) {
+      setError("Erreur actualisation: " + e.message);
+    } finally { setUpdating(false); }
   };
 
-  // ── VALIDER LES CHANGEMENTS ──
   const applyUpdate = () => {
-    if (!updatePanel) return;
     const now = new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
-    setPersonas(prev => ({
-      ...prev,
-      [current]: {
-        ...prev[current],
-        medias: updatePanel.proposed.medias,
-        interests: updatePanel.proposed.interests,
-        frustrations: updatePanel.proposed.frustrations,
-        triggers: updatePanel.proposed.triggers,
-        bio: updatePanel.proposed.bio,
-        lastUpdate: now,
-        signals: updatePanel.signals
-      }
-    }));
+    setPersonas(prev => ({ ...prev, [current]: { ...prev[current], ...updatePanel.proposed, lastUpdate: now, signals: updatePanel.signals } }));
     setUpdatePanel(null);
-    setShowSignals(false);
-  };
-
-  const rejectUpdate = () => { setUpdatePanel(null); setShowSignals(false); };
-
-  // ── STYLES ──
-  const S = {
-    wrap: { fontFamily: "system-ui, sans-serif", background: "#f5f0e8", minHeight: "100vh", color: "#0d0d0d" },
-    header: { borderBottom: "2px solid #0d0d0d", padding: "14px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f5f0e8" },
-    container: { maxWidth: 1100, margin: "0 auto", padding: "24px 20px 60px" },
-    grid: { display: "grid", gridTemplateColumns: "310px 1fr", gap: 20, alignItems: "start" },
-    card: { background: "#0d0d0d", color: "white", borderRadius: 4, overflow: "hidden", position: "sticky", top: 20 },
-    cardHead: { padding: "16px 18px", borderBottom: "1px solid rgba(255,255,255,0.1)", display: "flex", gap: 12, alignItems: "flex-start" },
-    avatar: { width: 50, height: 50, borderRadius: "50%", background: "rgba(255,255,255,0.1)", border: "2px solid rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 },
-    cardBody: { padding: "14px 18px" },
-    itTitle: { fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase", color: "rgba(255,255,255,0.38)", marginBottom: 4 },
-    itContent: { fontSize: 12, color: "rgba(255,255,255,0.8)", lineHeight: 1.6 },
-    tagList: { display: "flex", flexWrap: "wrap", gap: 4, marginTop: 3 },
-    tag: { background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 3, padding: "1px 6px", fontSize: 11, color: "rgba(255,255,255,0.65)" },
-    updateBtn: { width: "100%", padding: "10px 0", background: "transparent", border: "none", borderTop: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)", fontSize: 12, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 },
-    updateBtnActive: { color: "#c9a84c" },
-    right: { display: "flex", flexDirection: "column", gap: 16 },
-    inputCard: { background: "white", border: "1.5px solid #e0d8cc", borderRadius: 4, overflow: "hidden" },
-    footer: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", borderTop: "1px solid #e0d8cc", background: "#fafaf8" },
-    btn: (disabled) => ({ background: disabled ? "#ccc" : "#0d0d0d", color: "white", border: "none", padding: "9px 22px", fontSize: 12, fontWeight: 500, cursor: disabled ? "not-allowed" : "pointer", borderRadius: 3, fontFamily: "inherit" }),
-    resultCard: { background: "white", border: "1.5px solid #e0d8cc", borderRadius: 4, overflow: "hidden" },
-    sec: (last) => ({ padding: "18px 20px", borderBottom: last ? "none" : "1px solid #e0d8cc" }),
-    secTitle: { fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "#8a8070", marginBottom: 10 },
-    bubble: { background: "#f5f0e8", borderLeft: "3px solid #e8401c", padding: "12px 14px", borderRadius: "0 4px 4px 0", fontSize: 14, lineHeight: 1.7, fontStyle: "italic" },
-    signalCard: { background: "white", border: "1.5px solid #c9a84c", borderRadius: 4, overflow: "hidden" },
-    signalHeader: { background: "#fffbf0", padding: "14px 18px", borderBottom: "1px solid #e8e0c8", display: "flex", alignItems: "center", justifyContent: "space-between" },
   };
 
   const getBadge = (type) => ({
@@ -233,21 +167,28 @@ Inclus exactement 4 signaux et 3 changements. Les signaux doivent être concrets
     color: type === "curieux" ? "#0d0d0d" : "white"
   });
 
-  const dotColor = { eloigne: "#e8401c", curieux: "#c9a84c", fidele: "#1a6b3a" };
-
   return (
-    <div style={S.wrap}>
-      <style>{`@keyframes bounce{0%,80%,100%{transform:scale(0.6);opacity:.4}40%{transform:scale(1);opacity:1}} @keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    <div style={{ fontFamily: "system-ui,sans-serif", background: "#f5f0e8", minHeight: "100vh", color: "#0d0d0d" }}>
+      <style>{`@keyframes bounce{0%,80%,100%{transform:scale(0.6);opacity:.4}40%{transform:scale(1);opacity:1}}@keyframes spin{to{transform:rotate(360deg)}}`}</style>
 
-      <header style={S.header}>
-        <div style={{ fontFamily: "Georgia,serif", fontSize: 19, fontWeight: 900 }}>
-          Persona<span style={{ color: "#e8401c" }}>Lab</span>
-        </div>
+      <header style={{ borderBottom: "2px solid #0d0d0d", padding: "14px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f5f0e8" }}>
+        <div style={{ fontFamily: "Georgia,serif", fontSize: 19, fontWeight: 900 }}>Persona<span style={{ color: "#e8401c" }}>Lab</span></div>
         <div style={{ fontSize: 10, color: "#8a8070", letterSpacing: 2, textTransform: "uppercase" }}>Test & Actualisation · TRACE</div>
       </header>
 
-      <div style={S.container}>
-        {/* SELECTOR */}
+      {!API_KEY && (
+        <div style={{ background: "#e8401c", color: "white", padding: "12px 28px", fontSize: 13, textAlign: "center" }}>
+          ⚠️ Clé API manquante — ajoutez VITE_ANTHROPIC_API_KEY dans Vercel Settings → Environment Variables
+        </div>
+      )}
+
+      {error && (
+        <div style={{ background: "#fff0ee", border: "1px solid #e8401c", color: "#e8401c", padding: "12px 28px", fontSize: 13, margin: "16px 28px", borderRadius: 4 }}>
+          ⚠️ {error}
+        </div>
+      )}
+
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 20px 60px" }}>
         <div style={{ display: "flex", gap: 8, marginBottom: 22, flexWrap: "wrap", alignItems: "center" }}>
           <span style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "#8a8070", marginRight: 4 }}>Persona :</span>
           {Object.entries(personas).map(([key, pe]) => (
@@ -260,89 +201,74 @@ Inclus exactement 4 signaux et 3 changements. Les signaux doivent être concrets
             }}>
               <span style={{ width: 7, height: 7, borderRadius: "50%", background: dotColor[key], display: "inline-block" }} />
               {pe.name} — {pe.typeLabel}
-              {pe.lastUpdate && <span style={{ fontSize: 10, background: "#1a6b3a", color: "white", padding: "1px 6px", borderRadius: 10, marginLeft: 2 }}>↻</span>}
+              {pe.lastUpdate && <span style={{ fontSize: 10, background: "#1a6b3a", color: "white", padding: "1px 6px", borderRadius: 10 }}>↻</span>}
             </button>
           ))}
         </div>
 
-        <div style={S.grid}>
-          {/* PERSONA CARD */}
-          <div style={S.card}>
-            <div style={S.cardHead}>
-              <div style={S.avatar}>{p.emoji}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 20, alignItems: "start" }}>
+          <div style={{ background: "#0d0d0d", color: "white", borderRadius: 4, overflow: "hidden", position: "sticky", top: 20 }}>
+            <div style={{ padding: "16px 18px", borderBottom: "1px solid rgba(255,255,255,0.1)", display: "flex", gap: 12 }}>
+              <div style={{ width: 50, height: 50, borderRadius: "50%", background: "rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{p.emoji}</div>
               <div>
-                <div style={{ fontFamily: "Georgia,serif", fontSize: 19, fontWeight: 700 }}>{p.name}</div>
+                <div style={{ fontFamily: "Georgia,serif", fontSize: 18, fontWeight: 700 }}>{p.name}</div>
                 <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 2, lineHeight: 1.6 }}>{p.age}<br />{p.job}</div>
                 <span style={getBadge(p.type)}>{p.typeLabel}</span>
-                {p.lastUpdate && <div style={{ fontSize: 10, color: "#c9a84c", marginTop: 5 }}>↻ Mis à jour le {p.lastUpdate}</div>}
+                {p.lastUpdate && <div style={{ fontSize: 10, color: "#c9a84c", marginTop: 4 }}>↻ Mis à jour le {p.lastUpdate}</div>}
               </div>
             </div>
-            <div style={S.cardBody}>
+            <div style={{ padding: "14px 18px" }}>
               {[
                 { t: "Biographie", c: p.bio },
-                { t: "Médias & plateformes", tags: p.medias },
-                { t: "Points d'accroche", tags: p.hooks },
+                { t: "Médias", tags: p.medias },
+                { t: "Accroches", tags: p.hooks },
                 { t: "Déclencheurs", c: p.triggers.join(" · ") },
                 { t: "Frustrations", c: p.frustrations.join(" · "), red: true },
               ].map((item, i) => (
                 <div key={i} style={{ marginBottom: 12 }}>
-                  <div style={S.itTitle}>{item.t}</div>
+                  <div style={{ fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase", color: "rgba(255,255,255,0.38)", marginBottom: 4 }}>{item.t}</div>
                   {item.tags
-                    ? <div style={S.tagList}>{item.tags.map((t, j) => <span key={j} style={S.tag}>{t}</span>)}</div>
-                    : <div style={{ ...S.itContent, color: item.red ? "rgba(255,100,80,0.85)" : "rgba(255,255,255,0.8)" }}>{item.c}</div>
+                    ? <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>{item.tags.map((t, j) => <span key={j} style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 3, padding: "1px 6px", fontSize: 11, color: "rgba(255,255,255,0.65)" }}>{t}</span>)}</div>
+                    : <div style={{ fontSize: 12, color: item.red ? "rgba(255,100,80,0.85)" : "rgba(255,255,255,0.8)", lineHeight: 1.6 }}>{item.c}</div>
                   }
                 </div>
               ))}
             </div>
-
-            {/* AUTO-UPDATE BUTTON */}
-            <button
-              style={{ ...S.updateBtn, ...(updating ? S.updateBtnActive : {}) }}
-              onClick={autoUpdate}
-              disabled={updating}
-            >
-              {updating
-                ? <><span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>↻</span> Recherche des signaux...</>
-                : <>↻ Actualiser automatiquement</>
-              }
+            <button onClick={autoUpdate} disabled={updating} style={{ width: "100%", padding: "10px 0", background: "transparent", border: "none", borderTop: "1px solid rgba(255,255,255,0.1)", color: updating ? "#c9a84c" : "rgba(255,255,255,0.6)", fontSize: 12, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+              <span style={{ display: "inline-block", animation: updating ? "spin 1s linear infinite" : "none" }}>↻</span>
+              {updating ? "Recherche des signaux..." : "Actualiser automatiquement"}
             </button>
           </div>
 
-          {/* RIGHT PANEL */}
-          <div style={S.right}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div>
               <div style={{ fontFamily: "Georgia,serif", fontSize: 24, fontWeight: 700 }}>Tester un contenu</div>
               <div style={{ fontSize: 13, color: "#8a8070", marginTop: 2 }}>Collez votre synopsis — {p.name} réagit en temps réel</div>
             </div>
 
-            {/* INPUT */}
-            <div style={S.inputCard}>
+            <div style={{ background: "white", border: "1.5px solid #e0d8cc", borderRadius: 4, overflow: "hidden" }}>
               <div style={{ padding: "14px 16px 0" }}>
-                <textarea
-                  value={content}
-                  onChange={e => setContent(e.target.value)}
+                <textarea value={content} onChange={e => setContent(e.target.value)}
                   placeholder="Collez ici votre article, script, titre, synopsis..."
-                  style={{ width: "100%", minHeight: 120, border: "1px solid #e0d8cc", borderRadius: 3, padding: 11, fontFamily: "inherit", fontSize: 13, resize: "vertical", outline: "none", background: "#fafaf8", lineHeight: 1.6, color: "#0d0d0d" }}
-                />
+                  style={{ width: "100%", minHeight: 120, border: "1px solid #e0d8cc", borderRadius: 3, padding: 11, fontFamily: "inherit", fontSize: 13, resize: "vertical", outline: "none", background: "#fafaf8", lineHeight: 1.6, color: "#0d0d0d" }} />
                 <div style={{ marginTop: 8, marginBottom: 12 }}>
                   <div style={{ fontSize: 11, color: "#8a8070", marginBottom: 5 }}>Exemples :</div>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {[["doc", "🎵 Documentaire rap 90s"], ["podcast", "🎙️ Podcast actualité"], ["serie", "📺 Série jeunes"]].map(([k, l]) => (
-                      <span key={k} onClick={() => setContent(EXAMPLES[k])}
-                        style={{ padding: "3px 11px", background: "#f0ece4", border: "1px solid #e0d8cc", borderRadius: 20, fontSize: 11, cursor: "pointer" }}>{l}</span>
+                      <span key={k} onClick={() => setContent(EXAMPLES[k])} style={{ padding: "3px 11px", background: "#f0ece4", border: "1px solid #e0d8cc", borderRadius: 20, fontSize: 11, cursor: "pointer" }}>{l}</span>
                     ))}
                   </div>
                 </div>
               </div>
-              <div style={S.footer}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", borderTop: "1px solid #e0d8cc", background: "#fafaf8" }}>
                 <span style={{ fontSize: 11, color: "#8a8070" }}>{content.length} car.</span>
-                <button style={S.btn(loading || !content.trim())} disabled={loading || !content.trim()} onClick={analyze}>
+                <button onClick={analyze} disabled={loading || !content.trim()}
+                  style={{ background: loading || !content.trim() ? "#ccc" : "#0d0d0d", color: "white", border: "none", padding: "9px 22px", fontSize: 12, fontWeight: 500, cursor: loading || !content.trim() ? "not-allowed" : "pointer", borderRadius: 3, fontFamily: "inherit" }}>
                   {loading ? "Analyse..." : `Analyser avec ${p.name} →`}
                 </button>
               </div>
             </div>
 
-            {/* LOADING */}
             {loading && (
               <div style={{ textAlign: "center", padding: 24 }}>
                 {[0,1,2].map(i => <span key={i} style={{ display: "inline-block", width: 8, height: 8, background: "#0d0d0d", borderRadius: "50%", margin: "0 3px", animation: `bounce 1.2s ${i*0.2}s ease-in-out infinite` }} />)}
@@ -350,18 +276,15 @@ Inclus exactement 4 signaux et 3 changements. Les signaux doivent être concrets
               </div>
             )}
 
-            {/* SIGNALS / UPDATE PANEL */}
-            {showSignals && updatePanel && (
-              <div style={S.signalCard}>
-                <div style={S.signalHeader}>
+            {updatePanel && (
+              <div style={{ background: "white", border: "1.5px solid #c9a84c", borderRadius: 4, overflow: "hidden" }}>
+                <div style={{ background: "#fffbf0", padding: "14px 18px", borderBottom: "1px solid #e8e0c8", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600 }}>↻ Signaux détectés pour {p.name}</div>
                     <div style={{ fontSize: 11, color: "#8a8070", marginTop: 2 }}>3 évolutions proposées — validez avant application</div>
                   </div>
                   <span style={{ fontSize: 10, background: "#c9a84c", color: "#0d0d0d", padding: "2px 8px", borderRadius: 10, fontWeight: 600 }}>EN ATTENTE</span>
                 </div>
-
-                {/* Signals */}
                 <div style={{ padding: "14px 18px", borderBottom: "1px solid #e8e0c8" }}>
                   <div style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "#8a8070", marginBottom: 10 }}>Signaux captés</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -375,8 +298,6 @@ Inclus exactement 4 signaux et 3 changements. Les signaux doivent être concrets
                     ))}
                   </div>
                 </div>
-
-                {/* Proposed changes */}
                 <div style={{ padding: "14px 18px", borderBottom: "1px solid #e8e0c8" }}>
                   <div style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "#8a8070", marginBottom: 10 }}>Évolutions proposées</div>
                   {updatePanel.proposed.changes.map((c, i) => (
@@ -386,27 +307,20 @@ Inclus exactement 4 signaux et 3 changements. Les signaux doivent être concrets
                     </div>
                   ))}
                 </div>
-
-                {/* Actions */}
                 <div style={{ padding: "12px 18px", display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                  <button onClick={rejectUpdate} style={{ padding: "8px 18px", background: "white", border: "1.5px solid #e0d8cc", borderRadius: 3, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
-                    ✕ Rejeter
-                  </button>
-                  <button onClick={applyUpdate} style={{ padding: "8px 18px", background: "#1a6b3a", color: "white", border: "none", borderRadius: 3, fontSize: 12, cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>
-                    ✓ Valider & Appliquer
-                  </button>
+                  <button onClick={() => setUpdatePanel(null)} style={{ padding: "8px 18px", background: "white", border: "1.5px solid #e0d8cc", borderRadius: 3, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>✕ Rejeter</button>
+                  <button onClick={applyUpdate} style={{ padding: "8px 18px", background: "#1a6b3a", color: "white", border: "none", borderRadius: 3, fontSize: 12, cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>✓ Valider & Appliquer</button>
                 </div>
               </div>
             )}
 
-            {/* RESULT */}
             {result && (
-              <div style={S.resultCard}>
-                <div style={{ ...S.sec(false), display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ background: "white", border: "1.5px solid #e0d8cc", borderRadius: 4, overflow: "hidden" }}>
+                <div style={{ padding: "18px 20px", borderBottom: "1px solid #e0d8cc", display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#0d0d0d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{p.emoji}</div>
                   <div style={{ fontSize: 13, fontWeight: 500 }}>{p.name} réagit <span style={{ color: "#8a8070", fontWeight: 400 }}>· {p.typeLabel}</span></div>
                 </div>
-                <div style={{ ...S.sec(false), display: "flex", alignItems: "center", gap: 24 }}>
+                <div style={{ padding: "18px 20px", borderBottom: "1px solid #e0d8cc", display: "flex", alignItems: "center", gap: 24 }}>
                   <ScoreCircle score={result.score} color={scoreColor} />
                   <div>
                     <div style={{ fontSize: 24 }}>{result.score >= 70 ? "🟢" : result.score >= 40 ? "🟡" : "🔴"}</div>
@@ -414,16 +328,16 @@ Inclus exactement 4 signaux et 3 changements. Les signaux doivent être concrets
                     <div style={{ fontSize: 11, color: "#8a8070" }}>Score de résonance avec {p.name}</div>
                   </div>
                 </div>
-                <div style={S.sec(false)}>
-                  <div style={S.secTitle}>La réaction de {p.name}</div>
-                  <div style={S.bubble}>"{result.reaction}"</div>
+                <div style={{ padding: "18px 20px", borderBottom: "1px solid #e0d8cc" }}>
+                  <div style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "#8a8070", marginBottom: 10 }}>La réaction de {p.name}</div>
+                  <div style={{ background: "#f5f0e8", borderLeft: "3px solid #e8401c", padding: "12px 14px", borderRadius: "0 4px 4px 0", fontSize: 14, lineHeight: 1.7, fontStyle: "italic" }}>"{result.reaction}"</div>
                 </div>
-                <div style={S.sec(false)}>
-                  <div style={S.secTitle}>Analyse détaillée</div>
+                <div style={{ padding: "18px 20px", borderBottom: "1px solid #e0d8cc" }}>
+                  <div style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "#8a8070", marginBottom: 10 }}>Analyse détaillée</div>
                   {Object.entries(result.dimensions).map(([k, v]) => <DimBar key={k} label={k} value={v} />)}
                 </div>
-                <div style={S.sec(true)}>
-                  <div style={S.secTitle}>Pour mieux toucher {p.name}</div>
+                <div style={{ padding: "18px 20px" }}>
+                  <div style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "#8a8070", marginBottom: 10 }}>Pour mieux toucher {p.name}</div>
                   {result.recommandations.map((r, i) => (
                     <div key={i} style={{ display: "flex", gap: 8, marginBottom: 7, alignItems: "flex-start" }}>
                       <span style={{ width: 20, height: 20, background: "#0d0d0d", color: "white", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, flexShrink: 0, marginTop: 1 }}>{i+1}</span>
