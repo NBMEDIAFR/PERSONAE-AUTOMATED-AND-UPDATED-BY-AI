@@ -70,24 +70,56 @@ const callClaude = async (system, userMessage, maxTokens = 1000) => {
 };
 
 // Extraction texte depuis fichier
-const extractText = (file) => new Promise((resolve, reject) => {
-  const reader = new FileReader();
+const extractText = async (file) => {
+  // TXT
   if (file.type === "text/plain") {
-    reader.onload = e => resolve(e.target.result);
-    reader.onerror = reject;
-    reader.readAsText(file);
-  } else {
-    // Pour PDF et DOCX on lit comme texte brut (extrait ce qui est lisible)
-    reader.onload = e => {
-      const text = e.target.result;
-      // Nettoie les caractères non imprimables
-      const clean = text.replace(/[^\x20-\x7E\xA0-\xFF\n\r\t]/g, " ").replace(/\s+/g, " ").trim();
-      resolve(clean.length > 100 ? clean : `[Fichier : ${file.name}]\n${clean}`);
-    };
-    reader.onerror = reject;
-    reader.readAsText(file);
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.onerror = reject;
+      reader.readAsText(file);
+    });
   }
-});
+
+  // PDF via PDF.js CDN
+  if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
+    const arrayBuffer = await file.arrayBuffer();
+    // Charge PDF.js dynamiquement
+    if (!window.pdfjsLib) {
+      await new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    }
+    const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let fullText = "";
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      fullText += content.items.map(item => item.str).join(" ") + "\n";
+    }
+    return fullText.trim() || `[PDF sans texte extractible : ${file.name}]`;
+  }
+
+  // DOCX — extrait le texte XML interne
+  if (file.name.endsWith(".docx") || file.name.endsWith(".doc")) {
+    const arrayBuffer = await file.arrayBuffer();
+    // Cherche le contenu word/document.xml dans le zip
+    const uint8 = new Uint8Array(arrayBuffer);
+    const decoder = new TextDecoder("utf-8", { fatal: false });
+    const raw = decoder.decode(uint8);
+    // Extrait le texte entre balises <w:t>
+    const matches = raw.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || [];
+    const text = matches.map(m => m.replace(/<[^>]+>/g, "")).join(" ").trim();
+    return text.length > 50 ? text : `[Fichier Word : ${file.name} — texte partiellement lisible]\n${text}`;
+  }
+
+  return `[Format non supporté : ${file.name}]`;
+};
 
 const TagList = ({ items, onChange }) => {
   const [newItem, setNewItem] = useState("");
