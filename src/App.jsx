@@ -158,6 +158,7 @@ const AdminPanel = ({ personas, onSave, onClose }) => {
   const [newKey, setNewKey] = useState("");
   const [newSectionLabel, setNewSectionLabel] = useState("");
   const [addingSectionMode, setAddingSectionMode] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const photoRef = useRef();
   const docRef = useRef();
 
@@ -193,6 +194,20 @@ const AdminPanel = ({ personas, onSave, onClose }) => {
       update("documents", docs);
     } catch(err) { alert("Erreur lecture fichier: " + err.message); }
     e.target.value = "";
+  };
+
+  const generateFromDoc = async () => {
+    const docs = p.documents || [];
+    if (docs.length === 0) { alert("Ajoutez dabord un document !"); return; }
+    setGenerating(true);
+    try {
+      const docTexts = docs.map(d => "--- " + d.name + " ---\n" + d.text.slice(0, 2000)).join("\n\n");
+      const prompt = "Tu es expert en creation de personas marketing. Analyse ce document et genere un persona complet.\n\nDOCUMENT(S):\n" + docTexts + "\n\nReponds UNIQUEMENT en JSON valide sans backticks:\n{\"name\":\"<prenom>\",\"age\":\"<XX ans Ville>\",\"job\":\"<Profession Diplome CSP>\",\"emoji\":\"<1 emoji>\",\"bio\":\"<3-4 phrases>\",\"type\":\"<eloigne|curieux|fidele>\",\"typeLabel\":\"<Les Elloignes|Les Curieux|Les Fideles>\",\"color\":\"<#e8401c|#c9a84c|#1a6b3a>\",\"medias\":[\"<5-7 medias>\"],\"interests\":[\"<4-6 interets>\"],\"frustrations\":[\"<3-5 frustrations>\"],\"hooks\":[\"<3-4 accroches>\"],\"triggers\":[\"<3-5 declencheurs>\"]}";
+      const text = await callClaude(null, prompt, 1500);
+      const generated = JSON.parse(text.replace(/```json|```/g, "").trim());
+      setEdited(prev => ({ ...prev, [activeKey]: { ...prev[activeKey], ...generated, photo: prev[activeKey].photo, documents: prev[activeKey].documents, customSections: prev[activeKey].customSections || [], lastUpdate: null, signals: [] } }));
+    } catch(e) { alert("Erreur generation : " + e.message); }
+    finally { setGenerating(false); }
   };
 
   const addSection = () => {
@@ -288,9 +303,16 @@ const AdminPanel = ({ personas, onSave, onClose }) => {
 
             {/* DOCUMENTS DU PERSONA */}
             <div style={{ marginBottom: 20, background: "#f0f4ff", border: "1.5px solid #c8d4f0", borderRadius: 4, padding: 14 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, gap: 8 }}>
                 <label style={{ ...fi.label, marginBottom: 0, color: "#4466cc" }}>📄 Documents de référence</label>
-                <button onClick={() => docRef.current.click()} style={{ background: "#4466cc", color: "white", border: "none", borderRadius: 3, padding: "5px 12px", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>+ Ajouter un document</button>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => docRef.current.click()} style={{ background: "#4466cc", color: "white", border: "none", borderRadius: 3, padding: "5px 12px", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>+ Ajouter un document</button>
+                  {(p.documents || []).length > 0 && (
+                    <button onClick={generateFromDoc} disabled={generating} style={{ background: generating ? "#888" : "linear-gradient(135deg, #e8401c, #c9a84c)", color: "white", border: "none", borderRadius: 3, padding: "5px 14px", fontSize: 11, cursor: generating ? "not-allowed" : "pointer", fontFamily: "inherit", fontWeight: 700 }}>
+                      {generating ? "⏳ Génération..." : "✨ Générer le persona"}
+                    </button>
+                  )}
+                </div>
                 <input ref={docRef} type="file" accept=".txt,.pdf,.docx,.doc" onChange={handleDoc} style={{ display: "none" }} />
               </div>
               {(p.documents || []).length === 0
