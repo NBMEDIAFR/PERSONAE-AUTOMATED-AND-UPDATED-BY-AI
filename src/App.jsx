@@ -1,54 +1,39 @@
 import { useState, useEffect, useRef } from "react";
 
 const API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
-const BLOB_TOKEN = import.meta.env.VITE_BLOB_TOKEN;
-const BLOB_BASE = "https://6zvsldqgxndbihxz.public.blob.vercel-storage.com";
-const PERSONAS_URL = BLOB_BASE + "/personas.json";
-
-// Charge les personas depuis Vercel Blob
+// Charge les personas depuis l'API
 const loadPersonasFromBlob = async () => {
   try {
-    const res = await fetch(PERSONAS_URL + "?t=" + Date.now());
+    const res = await fetch("/api/personas?t=" + Date.now());
     if (!res.ok) return null;
     return await res.json();
   } catch(e) { return null; }
 };
 
-// Upload photo vers Vercel Blob
+// Upload photo via l'API
 const uploadPhotoToBlob = async (file) => {
-  if (!BLOB_TOKEN) return null;
-  const filename = "photos/" + Date.now() + "_" + file.name.replace(/[^a-zA-Z0-9.]/g, "_");
-  const res = await fetch("https://blob.vercel-storage.com/" + filename, {
-    method: "PUT",
-    headers: {
-      "Authorization": "Bearer " + BLOB_TOKEN,
-      "Content-Type": file.type,
-      "x-add-random-suffix": "0",
-    },
-    body: file
-  });
-  if (!res.ok) return null;
-  const data = await res.json();
-  return data.url;
+  try {
+    const res = await fetch("/api/upload-photo", {
+      method: "POST",
+      headers: { "x-filename": file.name },
+      body: file
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.url;
+  } catch(e) { return null; }
 };
 
-// Sauvegarde les personas dans Vercel Blob
+// Sauvegarde les personas via l'API
 const savePersonasToBlob = async (personas) => {
-  if (!BLOB_TOKEN) { console.warn("VITE_BLOB_TOKEN manquant"); return false; }
-  // Strip photos base64 volumineuses des documents pour alléger
-  const payload = JSON.stringify(personas);
-  const res = await fetch("https://blob.vercel-storage.com/personas.json", {
-    method: "PUT",
-    headers: {
-      "Authorization": "Bearer " + BLOB_TOKEN,
-      "Content-Type": "application/json",
-      "x-content-type": "application/json",
-      "x-add-random-suffix": "0",
-      "x-cache-control-max-age": "0",
-    },
-    body: payload
-  });
-  return res.ok;
+  try {
+    const res = await fetch("/api/personas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(personas)
+    });
+    return res.ok;
+  } catch(e) { return false; }
 };
 
 const DEFAULT_SECTIONS = [
