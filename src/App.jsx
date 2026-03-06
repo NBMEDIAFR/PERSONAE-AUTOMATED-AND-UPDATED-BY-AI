@@ -14,6 +14,24 @@ const loadPersonasFromBlob = async () => {
   } catch(e) { return null; }
 };
 
+// Upload photo vers Vercel Blob
+const uploadPhotoToBlob = async (file) => {
+  if (!BLOB_TOKEN) return null;
+  const filename = "photos/" + Date.now() + "_" + file.name.replace(/[^a-zA-Z0-9.]/g, "_");
+  const res = await fetch("https://blob.vercel-storage.com/" + filename, {
+    method: "PUT",
+    headers: {
+      "Authorization": "Bearer " + BLOB_TOKEN,
+      "Content-Type": file.type,
+      "x-add-random-suffix": "0",
+    },
+    body: file
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.url;
+};
+
 // Sauvegarde les personas dans Vercel Blob
 const savePersonasToBlob = async (personas) => {
   if (!BLOB_TOKEN) { console.warn("VITE_BLOB_TOKEN manquant"); return false; }
@@ -218,11 +236,27 @@ const AdminPanel = ({ personas, onSave, onClose }) => {
     const n = { ...edited }; delete n[key]; setEdited(n); setActiveKey(keys[0]);
   };
 
-  const handlePhoto = (e) => {
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  const handlePhoto = async (e) => {
     const file = e.target.files[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => update("photo", ev.target.result);
-    reader.readAsDataURL(file);
+    setUploadingPhoto(true);
+    try {
+      const url = await uploadPhotoToBlob(file);
+      if (url) {
+        update("photo", url);
+      } else {
+        // Fallback base64 si pas de token
+        const reader = new FileReader();
+        reader.onload = ev => update("photo", ev.target.result);
+        reader.readAsDataURL(file);
+      }
+    } catch(err) {
+      const reader = new FileReader();
+      reader.onload = ev => update("photo", ev.target.result);
+      reader.readAsDataURL(file);
+    } finally { setUploadingPhoto(false); }
+    e.target.value = "";
   };
 
   const handleDoc = async (e) => {
@@ -312,7 +346,7 @@ const AdminPanel = ({ personas, onSave, onClose }) => {
                     {p.photo ? <img src={p.photo} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ textAlign: "center" }}><div style={{ fontSize: 24 }}>{p.emoji}</div><div style={{ fontSize: 9, color: "#8a8070", marginTop: 2 }}>Cliquer</div></div>}
                   </div>
                   <div>
-                    <button onClick={() => photoRef.current.click()} style={{ display: "block", background: "#0d0d0d", color: "white", border: "none", borderRadius: 3, padding: "6px 12px", fontSize: 11, cursor: "pointer", fontFamily: "inherit", marginBottom: 6 }}>📷 Uploader photo</button>
+                    <button onClick={() => !uploadingPhoto && photoRef.current.click()} style={{ display: "block", background: uploadingPhoto ? "#888" : "#0d0d0d", color: "white", border: "none", borderRadius: 3, padding: "6px 12px", fontSize: 11, cursor: uploadingPhoto ? "not-allowed" : "pointer", fontFamily: "inherit", marginBottom: 6 }}>{uploadingPhoto ? "⏳ Upload..." : "📷 Uploader photo"}</button>
                     {p.photo && <button onClick={() => update("photo", null)} style={{ display: "block", background: "white", border: "1px solid #e0d8cc", borderRadius: 3, padding: "5px 12px", fontSize: 11, cursor: "pointer", fontFamily: "inherit", color: "#e8401c" }}>✕ Supprimer</button>}
                   </div>
                   <input ref={photoRef} type="file" accept="image/*" onChange={handlePhoto} style={{ display: "none" }} />
