@@ -1,6 +1,37 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
+const BLOB_TOKEN = import.meta.env.VITE_BLOB_TOKEN;
+const BLOB_BASE = "https://6zvsldqgxndbihxz.public.blob.vercel-storage.com";
+const PERSONAS_URL = BLOB_BASE + "/personas.json";
+
+// Charge les personas depuis Vercel Blob
+const loadPersonasFromBlob = async () => {
+  try {
+    const res = await fetch(PERSONAS_URL + "?t=" + Date.now());
+    if (!res.ok) return null;
+    return await res.json();
+  } catch(e) { return null; }
+};
+
+// Sauvegarde les personas dans Vercel Blob
+const savePersonasToBlob = async (personas) => {
+  if (!BLOB_TOKEN) { console.warn("VITE_BLOB_TOKEN manquant"); return false; }
+  // Strip photos base64 volumineuses des documents pour alléger
+  const payload = JSON.stringify(personas);
+  const res = await fetch("https://blob.vercel-storage.com/personas.json", {
+    method: "PUT",
+    headers: {
+      "Authorization": "Bearer " + BLOB_TOKEN,
+      "Content-Type": "application/json",
+      "x-content-type": "application/json",
+      "x-add-random-suffix": "0",
+      "x-cache-control-max-age": "0",
+    },
+    body: payload
+  });
+  return res.ok;
+};
 
 const DEFAULT_SECTIONS = [
   { key: "medias", label: "Médias & Plateformes" },
@@ -410,6 +441,8 @@ const DimBar = ({ label, value }) => {
 export default function PersonaLab() {
   const [personas, setPersonas] = useState(PERSONAS_BASE);
   const [current, setCurrent] = useState("fidele");
+  const [blobLoading, setBlobLoading] = useState(true);
+  const [blobStatus, setBlobStatus] = useState(null);
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -425,7 +458,28 @@ export default function PersonaLab() {
   const allSections = [...DEFAULT_SECTIONS, ...(p.customSections || [])];
 
   const selectPersona = (key) => { setCurrent(key); setResult(null); setUpdatePanel(null); setError(null); };
-  const savePersonas = (np) => { setPersonas(np); if (!np[current]) setCurrent(Object.keys(np)[0]); setShowAdmin(false); };
+
+  const savePersonas = async (np) => {
+    setPersonas(np);
+    if (!np[current]) setCurrent(Object.keys(np)[0]);
+    setShowAdmin(false);
+    setBlobStatus("saving");
+    const ok = await savePersonasToBlob(np);
+    setBlobStatus(ok ? "saved" : "error");
+    setTimeout(() => setBlobStatus(null), 3000);
+  };
+
+  // Charge les personas au démarrage
+  useEffect(() => {
+    loadPersonasFromBlob().then(data => {
+      if (data && Object.keys(data).length > 0) {
+        setPersonas(data);
+        const keys = Object.keys(data);
+        setCurrent(keys[keys.length - 1]);
+      }
+      setBlobLoading(false);
+    });
+  }, []);
 
   // Upload document dans la zone de test
   const handleContentDoc = async (e) => {
@@ -484,7 +538,13 @@ export default function PersonaLab() {
       <header style={{ borderBottom: "2px solid #0d0d0d", padding: "14px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f5f0e8" }}>
         <div style={{ fontFamily: "Georgia,serif", fontSize: 19, fontWeight: 900 }}>Persona<span style={{ color: "#e8401c" }}>Lab</span></div>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ fontSize: 10, color: "#8a8070", letterSpacing: 2, textTransform: "uppercase" }}>Test & Actualisation · TRACE</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {blobLoading && <span style={{ fontSize: 11, color: "#8a8070" }}>⏳ Chargement...</span>}
+            {blobStatus === "saving" && <span style={{ fontSize: 11, color: "#c9a84c" }}>💾 Sauvegarde...</span>}
+            {blobStatus === "saved" && <span style={{ fontSize: 11, color: "#1a6b3a" }}>✓ Sauvegardé</span>}
+            {blobStatus === "error" && <span style={{ fontSize: 11, color: "#e8401c" }}>⚠️ Erreur sauvegarde</span>}
+            <div style={{ fontSize: 10, color: "#8a8070", letterSpacing: 2, textTransform: "uppercase" }}>Test & Actualisation · TRACE</div>
+          </div>
           <button onClick={() => setShowAdmin(true)} style={{ background: "#0d0d0d", color: "white", border: "none", borderRadius: 3, padding: "7px 14px", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>⚙️ Admin</button>
         </div>
       </header>
