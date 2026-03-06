@@ -152,7 +152,14 @@ const Avatar = ({ p, size = 50 }) => (
 
 // ── PANNEAU ADMIN ──
 const AdminPanel = ({ personas, onSave, onClose }) => {
-  const [edited, setEdited] = useState(JSON.parse(JSON.stringify(personas)));
+  const [edited, setEdited] = useState(() => {
+    // Deep copy qui preserve les photos (base64)
+    const copy = {};
+    for (const [k, v] of Object.entries(personas)) {
+      copy[k] = { ...v, documents: [...(v.documents || [])], customSections: [...(v.customSections || [])], signals: [...(v.signals || [])], medias: [...(v.medias || [])], interests: [...(v.interests || [])], frustrations: [...(v.frustrations || [])], hooks: [...(v.hooks || [])], triggers: [...(v.triggers || [])] };
+    }
+    return copy;
+  });
   const [activeKey, setActiveKey] = useState(Object.keys(personas)[0]);
   const [newPersonaMode, setNewPersonaMode] = useState(false);
   const [newKey, setNewKey] = useState("");
@@ -167,6 +174,7 @@ const AdminPanel = ({ personas, onSave, onClose }) => {
   const allSections = [...DEFAULT_SECTIONS, ...(p.customSections || [])];
 
   const addPersona = () => {
+    if (Object.keys(edited).length >= 10) { alert("Maximum 10 personas atteint."); return; }
     const key = (newKey.trim().toLowerCase().replace(/\s+/g, "_")) || `persona_${Date.now()}`;
     const t = TYPE_OPTIONS[0];
     setEdited(prev => ({ ...prev, [key]: { name: "Nouveau Persona", age: "— ans — Ville", job: "Profession · Diplôme · CSP", emoji: "🎯", photo: null, type: t.value, typeLabel: t.label, color: t.color, medias: [], interests: [], frustrations: [], hooks: [], triggers: [], bio: "Biographie du persona.", documents: [], customSections: [], lastUpdate: null, signals: [] } }));
